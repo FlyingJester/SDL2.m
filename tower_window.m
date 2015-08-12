@@ -16,7 +16,7 @@
 :- pred create_window(window::uo, rect::in, io::di, io::uo) is det.
 :- pred destroy_window(window::di, io::di, io::uo) is det.
 
-:- func window_surface(window::di, window::uo) = (surface::out) is det.
+:- pred window_surface(window::di, window::uo, surface::uo) is det.
 :- pred window_update_surface(window::di, window::uo) is det.
 
 :- func window_size(window::di, window::uo) = (size::uo) is det.
@@ -64,7 +64,7 @@ create_window(Window, Rect, !IO) :- create_window(Window, Rect, "Mercury SDL2 Wi
         IOout = IOin;
     ").
 
-:- pragma foreign_proc("C", window_surface(WindowIn::di, WindowOut::uo) = (Surface::out),
+:- pragma foreign_proc("C", window_surface(WindowIn::di, WindowOut::uo, Surface::uo),
     [will_not_call_mercury, promise_pure, thread_safe],
     "
         Surface = SDL_GetWindowSurface(WindowIn);
