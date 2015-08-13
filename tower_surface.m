@@ -28,6 +28,12 @@
 
 :- pred surface_size(surface::di, surface::uo, size::out) is det.
 
+    % Gets/Sets the pixel format of a surface.
+    % It is highly recommended that if you draw the same surface onto only one other
+    % surface over and over again, you set the source surface's format to be the same as
+    % the destination format.
+    % This can be particularly pronounced when drawing backgrounds.
+    % It is not a good idea to try to set the format of a window's surface.
 :- pred surface_pixel_format(surface, surface, pixel_format) is det.
 :- mode surface_pixel_format(di, uo, out) is det.
 :- mode surface_pixel_format(di, uo, in) is det.
