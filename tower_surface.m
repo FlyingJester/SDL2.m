@@ -28,7 +28,12 @@
 
 :- pred surface_size(surface::di, surface::uo, size::out) is det.
 
-:- pred surface_pixel_format(surface::di, surface::uo, pixel_format::out) is det.
+:- pred surface_pixel_format(surface, surface, pixel_format) is det.
+:- mode surface_pixel_format(di, uo, out) is det.
+:- mode surface_pixel_format(di, uo, in) is det.
+
+:- pred surface_get_pixel_format(surface::di, surface::uo, pixel_format::out) is det.
+:- pred surface_set_pixel_format(surface::di, surface::uo, pixel_format::in) is det.
 
 :- type color ---> color(r::int, g::int, b::int, a::int).
 
@@ -78,7 +83,7 @@
 
 :- pragma foreign_code("C", 
     "
-    static int rectIntersectsSurface(const SDL_Rect *rect, const SDL_Surface *surface){
+    int rectIntersectsSurface(const SDL_Rect *rect, const SDL_Surface *surface){
          return ((rect->w!=0) && (rect->h!=0) && 
             (rect->x<surface->w) && (rect->y<surface->h) && 
             (rect->x+rect->w>0) && (rect->y+rect->h>0));
@@ -123,15 +128,24 @@ create_color(R, G, B, A) = (color(R, G, B, A)).
 %===============================================================================
 %=== SDL2 Pixel Format Bridge
 %===============================================================================
+surface_get_pixel_format(!Surface, Format) :- surface_pixel_format(!Surface, Format).
+surface_set_pixel_format(!Surface, Format) :- surface_pixel_format(!Surface, Format).
+
 :- pragma foreign_proc("C", surface_pixel_format(SurfaceIn::di, SurfaceOut::uo, Format::out),
-    [promise_pure, thread_safe],
+    [will_not_call_mercury, promise_pure, thread_safe],
     "
         Format = SurfaceIn->format;
         SurfaceOut = SurfaceIn;
     ").
    
+:- pragma foreign_proc("C", surface_pixel_format(SurfaceIn::di, SurfaceOut::uo, Format::in),
+    [will_not_call_mercury, promise_pure, thread_safe],
+    "
+        SurfaceOut = SDL_ConvertSurfaceFormat(SurfaceIn, Format->format, 0);
+    ").
+
 :- pragma foreign_proc("C", map_color(Format::in, Color::in, RGBA::out),
-    [promise_pure, thread_safe],
+    [will_not_throw_exception, promise_pure, thread_safe],
     "
         MR_Integer r, g, b, a;
         getColor(Color, &r, &g, &b, &a);
@@ -139,7 +153,7 @@ create_color(R, G, B, A) = (color(R, G, B, A)).
     ").
 
 :- pragma foreign_proc("C", map_color(Format::in, Color::out, RGBA::in),
-    [promise_pure, thread_safe],
+    [will_not_throw_exception, promise_pure, thread_safe],
     "
         Uint8 r, g, b, a;
         SDL_GetRGBA(RGBA, Format, &r, &g, &b, &a);
@@ -155,7 +169,7 @@ map_color(!Surface, Color, RGBA) :-
 %=== SDL2 Surface Bridge
 %===============================================================================
 :- pragma foreign_proc("C", create_surface(Surface::uo, Size::in, IOin::di, IOout::uo),
-    [promise_pure, thread_safe],
+    [will_not_throw_exception, promise_pure, thread_safe],
     "
         MR_Integer w, h;
         getSize(Size, &w, &h);
@@ -167,14 +181,14 @@ map_color(!Surface, Color, RGBA) :-
     ").
 
 :- pragma foreign_proc("C", surface_size(SurfaceIn::di, SurfaceOut::uo, Size::out),
-    [promise_pure, thread_safe],
+    [will_not_throw_exception, promise_pure, thread_safe],
     "
         Size = createSize(SurfaceIn->w, SurfaceIn->h);
         SurfaceOut = SurfaceIn;
     ").
 
 :- pragma foreign_proc("C", surface_pixel(SurfaceIn::di, SurfaceOut::uo, Color::in, Point::in),
-    [promise_pure, thread_safe],
+    [will_not_throw_exception, promise_pure, thread_safe],
     "
         MR_Integer x, y, r, g, b, a;
         getPoint(Point, &x, &y);
@@ -193,7 +207,7 @@ map_color(!Surface, Color, RGBA) :-
     ").
 
 :- pragma foreign_proc("C", surface_pixel(SurfaceIn::di, SurfaceOut::uo, Color::out, Point::in),
-    [promise_pure, thread_safe],
+    [will_not_throw_exception, promise_pure, thread_safe],
     "
         MR_Integer x, y;
         getPoint(Point, &x, &y);
@@ -217,7 +231,7 @@ map_color(!Surface, Color, RGBA) :-
 % :- pred surface_fill_rect(surface::di, surface::uo, rect::in, color::in) is det.
 
 :- pragma foreign_proc("C", surface_fill_rect(SurfaceIn::di, SurfaceOut::uo, Color::in, Rect::in),
-    [promise_pure],
+    [will_not_throw_exception, promise_pure, thread_safe],
     "
         SDL_Rect rect;
         Uint32 color;
@@ -250,7 +264,7 @@ map_color(!Surface, Color, RGBA) :-
 :- pragma foreign_proc("C", 
     surface_blit_surface(SourceSurfaceIn::di, SourceSurfaceOut::uo, SourceRect::in, 
         DestinationSurfaceIn::di, DestinationSurfaceOut::uo, DestinationRect::in),
-    [promise_pure],
+    [will_not_throw_exception, promise_pure, thread_safe],
     "
         SDL_Rect src_rect, dst_rect;
 
@@ -283,7 +297,7 @@ map_color(!Surface, Color, RGBA) :-
 :- pragma foreign_proc("C", 
     surface_blit_surface(SourceSurfaceIn::di, SourceSurfaceOut::uo, 
         DestinationSurfaceIn::di, DestinationSurfaceOut::uo, Point::in),
-    [promise_pure],
+    [will_not_throw_exception, promise_pure, thread_safe],
     "
         SDL_Rect rect;
         
@@ -313,7 +327,7 @@ map_color(!Surface, Color, RGBA) :-
 % Silently fails.
 :- pragma foreign_proc("C", 
     surface_bmp(SurfaceIn::di, SurfaceOut::uo, Path::in, IOin::di, IOout::uo),
-    [promise_pure],
+    [will_not_throw_exception, promise_pure],
     "
         SDL_SaveBMP(SurfaceIn, Path);
         SurfaceOut = SurfaceIn;
@@ -332,7 +346,7 @@ create_bmp_io_ok(Surface) = (ok(Surface)).
 %:- pred surface_bmp(io.read_result(surface)::uo, string::in, io::di, io::uo) is det.
 :- pragma foreign_proc("C", 
     surface_bmp(Result::uo, Path::in, IOin::di, IOout::uo),
-    [promise_pure],
+    [will_not_throw_exception, promise_pure],
     "
         SDL_Surface * const surface = SDL_LoadBMP(Path);
         if(surface){

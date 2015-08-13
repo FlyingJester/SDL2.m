@@ -58,10 +58,10 @@ create_button_release_event(X, Y, Button) = (button_press_event(point(X, Y), But
 %=== SDL2 Event Bridge
 %===============================================================================
 :- pragma foreign_proc("C", get_event(Event::uo, IOin::di, IOout::uo),
-    [promise_pure, thread_safe],
+    [will_not_throw_exception, promise_pure, thread_safe],
     "
         SDL_Event e;
-        if(SDL_WaitEventTimeout(&e, 16)==0){
+        if(SDL_WaitEventTimeout(&e, 32)==0){
             Event = createTimeEvent();
         }
         else if(e.type==SDL_QUIT){

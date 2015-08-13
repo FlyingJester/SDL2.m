@@ -38,7 +38,7 @@ create_window(Window, Rect, !IO) :- create_window(Window, Rect, "Mercury SDL2 Wi
 :- pragma foreign_type("C", window, "SDL_Window *").
 
 :- pragma foreign_proc("C", create_window(Window::uo, Rect::in, Caption::in, IOin::di, IOout::uo),
-    [promise_pure, thread_safe],
+    [will_not_throw_exception, promise_pure],
     "
         MR_Integer x, y, w, h,
             sub = SDL_WasInit(SDL_SUBSYSTEMS);
@@ -58,7 +58,7 @@ create_window(Window, Rect, !IO) :- create_window(Window, Rect, "Mercury SDL2 Wi
     ").
 
 :- pragma foreign_proc("C", destroy_window(Window::di, IOin::di, IOout::uo),
-    [promise_pure, thread_safe],
+    [will_not_call_mercury, promise_pure, thread_safe],
     "
         SDL_DestroyWindow(Window);
         IOout = IOin;
@@ -81,7 +81,7 @@ create_window(Window, Rect, !IO) :- create_window(Window, Rect, "Mercury SDL2 Wi
 window_size(!Window) = (Rect) :- window_size(!Window, Rect).
 
 :- pragma foreign_proc("C", window_size(WindowIn::di, WindowOut::uo, Size::uo),
-    [promise_pure, thread_safe],
+    [will_not_throw_exception, promise_pure, thread_safe],
     "
         MR_Integer w, h;
         SDL_GetWindowSize(WindowIn, &w, &h);
@@ -90,7 +90,7 @@ window_size(!Window) = (Rect) :- window_size(!Window, Rect).
     ").
 
 :- pragma foreign_proc("C", window_size(WindowIn::di, WindowOut::uo, Size::in),
-    [promise_pure, thread_safe],
+    [will_not_throw_exception, promise_pure, thread_safe],
     "
         MR_Integer w, h;
         getSize(Size, &w, &h);
