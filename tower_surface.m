@@ -15,6 +15,8 @@
     % create_surface(NewSurface, Size, !IO)
 :- pred create_surface(surface::uo, size::in, io::di, io::uo) is det.
 
+:- pred destroy_surface(surface::di, io::di, io::uo) is det.
+
     % Sets or unsets RLE for a surface. Value of 0 is unset, value > 0 is set.
     % RLE-enabled surfaces blit and draw much faster, but must be locked before
     % being used with surface_pixel.
@@ -183,6 +185,13 @@ map_color(!Surface, Color, RGBA) :-
         Surface = SDL_CreateRGBSurface(0, w, h, 32, 0, 0, 0, 0);
         SDL_SetSurfaceRLE(Surface, 1);
         
+        IOout = IOin;
+    ").
+
+:- pragma foreign_proc("C", destroy_surface(Surface::di, IOin::di, IOout::uo),
+    [will_not_call_mercury, promise_pure, thread_safe],
+    "
+        SDL_FreeSurface(Surface); 
         IOout = IOin;
     ").
 
