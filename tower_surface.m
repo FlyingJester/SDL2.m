@@ -6,6 +6,7 @@
 %===============================================================================
 
 :- import_module tower_rect.
+:- import_module color.
 :- import_module io.
 
 :- type surface.
@@ -42,8 +43,6 @@
 
 :- pred surface_get_pixel_format(surface::di, surface::uo, pixel_format::out) is det.
 :- pred surface_set_pixel_format(surface::di, surface::uo, pixel_format::in) is det.
-
-:- type color ---> color(r::int, g::int, b::int, a::int).
 
     % Returns the native int value of a color based on a surface's format
     % map_color(!Surface, Color, Native)
