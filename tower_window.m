@@ -11,8 +11,9 @@
 
 :- type window.
 
-:- pred create_window(window::uo, rect::in, string::in, io::di, io::uo) is det.
-:- pred create_window(window::uo, int::in, int::in, string::in, io::di, io::uo) is det.
+:- type window_style ---> decorated ; borderless ; resizable ; fullscreen.
+
+:- pred create_window(window::uo, rect::in, string::in, window_style::in, io::di, io::uo) is det.
 :- pred create_window(window::uo, rect::in, io::di, io::uo) is det.
 :- pred destroy_window(window::di, io::di, io::uo) is det.
 
@@ -28,8 +29,13 @@
 :- implementation.
 %===============================================================================
 
-create_window(Window, W, H, Caption, !IO) :- create_window(Window, rect(point(0, 0), size(W, H)), Caption, !IO).
-create_window(Window, Rect, !IO) :- create_window(Window, Rect, "Mercury SDL2 Window", !IO).
+:- pragma foreign_enum("C", window_style/0,
+    [decorated - "0", 
+     borderless - "SDL_WINDOW_BORDERLESS",
+     resizable - "SDL_WINDOW_RESIZABLE",
+     fullscreen - "SDL_WINDOW_FULLSCREEN"]).
+
+create_window(Window, Rect, !IO) :- create_window(Window, Rect, "Mercury SDL2 Window", decorated, !IO).
 
 :- pragma foreign_decl("C", "#include <SDL2/SDL.h>").
 :- pragma foreign_decl("C", "#include <stdio.h>").
@@ -37,7 +43,7 @@ create_window(Window, Rect, !IO) :- create_window(Window, Rect, "Mercury SDL2 Wi
 
 :- pragma foreign_type("C", window, "SDL_Window *").
 
-:- pragma foreign_proc("C", create_window(Window::uo, Rect::in, Caption::in, IOin::di, IOout::uo),
+:- pragma foreign_proc("C", create_window(Window::uo, Rect::in, Caption::in, Style::in, IOin::di, IOout::uo),
     [will_not_throw_exception, promise_pure],
     "
         MR_Integer x, y, w, h,
@@ -53,7 +59,7 @@ create_window(Window, Rect, !IO) :- create_window(Window, Rect, "Mercury SDL2 Wi
         
         Window = SDL_CreateWindow(Caption, 
             x, y, w, h,
-            SDL_WINDOW_SHOWN|SDL_WINDOW_ALLOW_HIGHDPI);
+            (Style) | SDL_WINDOW_SHOWN|SDL_WINDOW_ALLOW_HIGHDPI);
         IOout = IOin;
     ").
 

@@ -85,6 +85,8 @@
 :- implementation.
 %===============================================================================
 
+% :- import_module tower_tga.
+
 :- pragma foreign_decl("C", "#include <SDL2/SDL.h>").
 :- pragma foreign_type("C", surface, "SDL_Surface *").
 :- pragma foreign_type("C", pixel_format, "SDL_PixelFormat *").
