@@ -122,7 +122,7 @@
 :- pred window_update_surface(window::di, window::uo) is det.
 
 :- func window_size(window::di, window::uo) = (size::uo) is det.
-:- pred window_size(window, window, size) is det.
+:- pred window_size(window, window, size).
 :- mode window_size(di, uo, uo) is det.
 :- mode window_size(di, uo, in) is det.
 
@@ -166,7 +166,7 @@
     % the destination format.
     % This can be particularly pronounced when drawing backgrounds.
     % It is not a good idea to try to set the format of a window's surface.
-:- pred surface_pixel_format(surface, surface, pixel_format) is det.
+:- pred surface_pixel_format(surface, surface, pixel_format).
 :- mode surface_pixel_format(di, uo, out) is det.
 :- mode surface_pixel_format(di, uo, in) is det.
 
@@ -241,6 +241,46 @@
 :- mode blend(in, in) = (out) is det.
 
 %===============================================================================
+%=== Rect and Point manipulation
+%===============================================================================
+
+    % Equates to PointA + PointB = PointC
+    % translate_point(PointA, PointB, PointC)
+:- pred translate_point(point, point, point).
+:- mode translate_point(in, in, out) is det.
+:- mode translate_point(in, out, in) is det.
+:- mode translate_point(out, in, in) is det.
+:- mode translate_point(in, in, in) is semidet.
+
+:- func translate_point(point, point) = (point).
+:- mode translate_point(in, in) = (out) is det.
+:- mode translate_point(in, out) = (in) is det.
+:- mode translate_point(out, in) = (in) is det.
+
+    % Equates to PointA - PointB = PointC
+    % reverse_translate_point(PointA, PointB, PointC)
+:- pred reverse_translate_point(point, point, point).
+:- mode reverse_translate_point(in, in, out) is det.
+:- mode reverse_translate_point(in, out, in) is det.
+:- mode reverse_translate_point(out, in, in) is det.
+:- mode reverse_translate_point(in, in, in) is semidet.
+
+:- func reverse_translate_point(point, point) = (point).
+:- mode reverse_translate_point(in, in) = (out) is det.
+:- mode reverse_translate_point(in, out) = (in) is det.
+:- mode reverse_translate_point(out, in) = (in) is det.
+
+    % Equates to PointA * size(X, Y) = PointC
+    % multiply_point(PointA, X, Y, PointC)
+:- pred multiply_point(point, int, int, point).
+:- mode multiply_point(in, in, in, out) is det.
+:- mode multiply_point(in, in, in, in) is semidet.
+
+:- func multiply_point(point, int, int) = (point).
+:- mode multiply_point(in, in, in) = (out) is det.
+
+
+%===============================================================================
 :- implementation.
 %===============================================================================
 
@@ -274,6 +314,18 @@ create_rect(X, Y, W, H) = (rect(point(X, Y), size(W, H))).
 :- pred get_rect(rect::in, int::out, int::out, int::out, int::out) is det.
 get_rect(rect(P, S), P ^ x, P ^ y, S ^ w,  S ^ h).
 :- pragma foreign_export("C", get_rect(in, out, out, out, out), "getRect").
+
+% Point manipulation
+
+translate_point(point(X1, Y1), point(X2, Y2), point(X1 + X2, Y1 + Y2)).
+translate_point(PointA, PointB) = (PointC) :- translate_point(PointA, PointB, PointC).
+
+reverse_translate_point(point(X1, Y1), point(X2, Y2), point(X1 + X2, Y1 + Y2)).
+reverse_translate_point(PointA, PointB) = (PointC) :- reverse_translate_point(PointA, PointB, PointC).
+
+multiply_point(point(X, Y), W, H, point(X * W, Y * H)).
+multiply_point(PointIn, X, Y) = (PointOut) :- multiply_point(PointIn, X, Y, PointOut).
+
 
 % Colors
 
@@ -395,7 +447,7 @@ create_mouse_move_event(FromX, FromY, ToX, ToY) = (mouse_move(point(FromX, FromY
 :- pragma foreign_export("C", create_mouse_move_event(in, in, in, in) = (out), "createMouseMove").
 
 :- pragma foreign_proc("C", get_event(WindowIn::di, WindowOut::uo) = (Event::out),
-    [will_not_throw_exception, promise_pure],
+    [will_not_throw_exception, promise_pure, thread_safe],
     "
         SDL_Event e;
         SDL_WaitEvent(&e);
@@ -410,7 +462,7 @@ create_mouse_move_event(FromX, FromY, ToX, ToY) = (mouse_move(point(FromX, FromY
 get_event(WIn, WOut, get_event(WIn, WOut)).
 
 :- pragma foreign_proc("C", check_event(WindowIn::di, WindowOut::uo) = (Event::out),
-    [will_not_throw_exception, promise_pure],
+    [will_not_throw_exception, promise_pure, thread_safe],
     "
         SDL_Event e;
         if(SDL_PollEvent(&e)){
@@ -431,7 +483,7 @@ check_event(WIn, WOut, check_event(WIn, WOut)).
 %   milliseconds for a new event to occur
 
 :- pragma foreign_proc("C", check_event(WindowIn::di, WindowOut::uo, MS::in) = (Event::out),
-    [will_not_throw_exception, promise_pure],
+    [will_not_throw_exception, promise_pure, thread_safe],
     "
         SDL_Event e;
         if(SDL_WaitEventTimeout(&e, MS)){
@@ -469,13 +521,13 @@ create_window(Window, Rect, !IO) :- create_window(Window, Rect, "Mercury SDL2 Wi
 :- pragma foreign_proc("C", create_window(Window::uo, Rect::in, Caption::in, Style::in, IOin::di, IOout::uo),
     [will_not_throw_exception, promise_pure],
     "
-        MR_Integer x, y, w, h,
-            sub = SDL_WasInit(SDL_SUBSYSTEMS);
+        MR_Integer x, y, w, h;
+        int sub = SDL_WasInit(SDL_SUBSYSTEMS);
         getRect(Rect, &x, &y, &w, &h);
         
         if(!(sub & SDL_SUBSYSTEMS)){
-            puts(\"Initializing SDL\");
-            if(SDL_Init(SDL_INIT_VIDEO|SDL_INIT_TIMER)<0){
+/*            puts(\"Initializing SDL\"); */
+            if(SDL_Init(SDL_INIT_VIDEO|SDL_INIT_TIMER|SDL_INIT_EVENTS)<0){
                 puts(SDL_GetError());
             }
         }
@@ -694,7 +746,7 @@ map_color(!Surface, Color, RGBA) :-
 % :- pred surface_fill_rect(surface::di, surface::uo, rect::in, color::in) is det.
 
 :- pragma foreign_proc("C", surface_fill_rect(SurfaceIn::di, SurfaceOut::uo, Color::in, Rect::in),
-    [will_not_throw_exception, promise_pure, thread_safe],
+    [will_not_throw_exception, promise_pure],
     "
         SDL_Rect rect;
         Uint32 color;
