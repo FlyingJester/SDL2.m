@@ -272,12 +272,12 @@
 
     % Equates to PointA * size(X, Y) = PointC
     % multiply_point(PointA, X, Y, PointC)
-:- pred multiply_point(point, int, int, point).
-:- mode multiply_point(in, in, in, out) is det.
-:- mode multiply_point(in, in, in, in) is semidet.
+% :- pred multiply_point(point, int, int, point).
+% :- mode multiply_point(in, in, in, out) is det.
+% :- mode multiply_point(in, in, in, in) is semidet.
 
-:- func multiply_point(point, int, int) = (point).
-:- mode multiply_point(in, in, in) = (out) is det.
+% :- func multiply_point(point, int, int) = (point).
+% :- mode multiply_point(in, in, in) = (out) is det.
 
 
 %===============================================================================
@@ -312,7 +312,7 @@ create_rect(X, Y, W, H) = (rect(point(X, Y), size(W, H))).
 :- pragma foreign_export("C", create_rect(in, in, in, in) = (out), "createRect").
 
 :- pred get_rect(rect::in, int::out, int::out, int::out, int::out) is det.
-get_rect(rect(P, S), P ^ x, P ^ y, S ^ w,  S ^ h).
+get_rect(rect(point(X, Y), size(W, H)), X, Y, W, H).
 :- pragma foreign_export("C", get_rect(in, out, out, out, out), "getRect").
 
 % Point manipulation
@@ -323,8 +323,8 @@ translate_point(PointA, PointB) = (PointC) :- translate_point(PointA, PointB, Po
 reverse_translate_point(point(X1, Y1), point(X2, Y2), point(X1 + X2, Y1 + Y2)).
 reverse_translate_point(PointA, PointB) = (PointC) :- reverse_translate_point(PointA, PointB, PointC).
 
-multiply_point(point(X, Y), W, H, point(X * W, Y * H)).
-multiply_point(PointIn, X, Y) = (PointOut) :- multiply_point(PointIn, X, Y, PointOut).
+% multiply_point(point(X, Y), W, H, point(X * W, Y * H)).
+% multiply_point(PointIn, X, Y) = (PointOut) :- multiply_point(PointIn, X, Y, PointOut).
 
 
 % Colors
@@ -549,6 +549,7 @@ create_window(Window, Rect, !IO) :- create_window(Window, Rect, "Mercury SDL2 Wi
     [will_not_call_mercury, promise_pure, thread_safe],
     "
         Surface = SDL_GetWindowSurface(WindowIn);
+        assert(Surface);
         WindowOut = WindowIn;
     ").
 
@@ -745,12 +746,18 @@ map_color(!Surface, Color, RGBA) :-
     ").
 % :- pred surface_fill_rect(surface::di, surface::uo, rect::in, color::in) is det.
 
-:- pragma foreign_proc("C", surface_fill_rect(SurfaceIn::di, SurfaceOut::uo, Color::in, Rect::in),
-    [will_not_throw_exception, promise_pure],
+:- pragma foreign_proc("C", surface_fill_rect(SurfaceIn::di, SurfaceOut::uo, Rect::in, Color::in),
+    [will_not_throw_exception, promise_pure, may_call_mercury],
     "
         SDL_Rect rect;
         Uint32 color;
 
+        {
+            MR_Integer r, g, b, a;
+            getColor(Color, &r, &g, &b, &a);
+
+            color = SDL_MapRGBA(SurfaceIn->format, r, g, b, a);
+        }
         {
             MR_Integer x, y, w, h;
             getRect(Rect, &x, &y, &w, &h);
@@ -760,18 +767,10 @@ map_color(!Surface, Color, RGBA) :-
             rect.w = w;
             rect.h = h;
         }
-        if(rectIntersectsSurface(&rect, SurfaceIn)){
-            {
-                MR_Integer r, g, b, a;
-                getColor(Color, &r, &g, &b, &a);
 
-                color = SDL_MapRGBA(SurfaceIn->format, r, g, b, a);
-            }
+        SDL_FillRect(SurfaceIn, &rect, color);
 
-            SDL_FillRect(SurfaceIn, &rect, color);
-
-            SurfaceOut = SurfaceIn;
-        }
+        SurfaceOut = SurfaceIn;
     ").
     % surface_blit_surface(!SourceSurface, SourceRegion, !DestinationSurface, DestinationRegion)
 %:- pred surface_blit_surface(surface::di, surface::uo, rect::in, surface::di, surface::uo, rect::in) is det.
