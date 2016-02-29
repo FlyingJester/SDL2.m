@@ -94,6 +94,13 @@
     key_left ;
     key_right.
 
+:- pred key_name(string, key).
+:- mode key_name(in, uo) is semidet.
+:- mode key_name(di, uo) is semidet.
+:- mode key_name(uo, in) is det.
+:- mode key_name(uo, di) is det.
+:- mode key_name(in, in) is semidet. % implied.
+
 :- type window_event ---> quit_event ;
     unknown_event ;
     key_down(key) ;
@@ -212,6 +219,8 @@
 :- pred surface_bmp(surface::di, surface::uo, string::in, io::di, io::uo) is det.
     % Load
 :- pred surface_bmp(io.read_result(surface)::uo, string::in, io::di, io::uo) is det.
+    % Returns an empty surface on failure.
+:- pred load_bmp(surface::uo, string::in, io::di, io::uo) is det.
 
 %===============================================================================
 %=== SDL2 Mouse support for Mercury
@@ -409,6 +418,80 @@ blend(color(R1, G1, B1, A1)::in, color(R - R1, G - G1, B - B1, A - A1)::in) = (c
     key_down - "SDLK_DOWN",
     key_left - "SDLK_LEFT",
     key_right - "SDLK_RIGHT"]).
+
+key_name("unknown", key_unknown).
+key_name("return", key_return).
+key_name("escape", key_escape).
+key_name("backspace", key_backspace).
+key_name("tab", key_tab).
+key_name("space", key_space).
+key_name("exclamation", key_exclamation).
+key_name("doublequote", key_doublequote).
+key_name("octothorp", key_octothorp).
+key_name("percent", key_percent).
+key_name("dollar", key_dollar).
+key_name("ampersand", key_ampersand).
+key_name("quote", key_quote).
+key_name("openparen", key_openparen).
+key_name("closeparen", key_closeparen).
+key_name("asterisk", key_asterisk).
+key_name("plus", key_plus).
+key_name("minus", key_minus).
+key_name("comma", key_comma).
+key_name("period", key_period).
+key_name("slash", key_slash).
+key_name("zero", key_zero).
+key_name("one", key_one).
+key_name("two", key_two).
+key_name("three", key_three).
+key_name("four", key_four).
+key_name("five", key_five).
+key_name("six", key_six).
+key_name("seven", key_seven).
+key_name("eight", key_eight).
+key_name("nine", key_nine).
+key_name("semicolon", key_semicolon).
+key_name("colon", key_colon).
+key_name("less", key_lessthan).
+key_name("greater", key_greaterthan).
+key_name("question", key_question).
+key_name("openbracket", key_openbracket).
+key_name("closebracket", key_closebracket).
+key_name("backslash", key_backslash).
+key_name("caret", key_caret).
+key_name("underscore", key_underscore).
+key_name("grave", key_grave).
+key_name("at", key_at).
+key_name("a", key_a).
+key_name("b", key_b).
+key_name("c", key_c).
+key_name("d", key_d).
+key_name("e", key_e).
+key_name("f", key_f).
+key_name("g", key_g).
+key_name("h", key_h).
+key_name("i", key_i).
+key_name("j", key_j).
+key_name("k", key_k).
+key_name("l", key_l).
+key_name("m", key_m).
+key_name("n", key_n).
+key_name("o", key_o).
+key_name("p", key_p).
+key_name("q", key_q).
+key_name("r", key_r).
+key_name("s", key_s).
+key_name("t", key_t).
+key_name("u", key_u).
+key_name("v", key_v).
+key_name("w", key_w).
+key_name("x", key_x).
+key_name("y", key_y).
+key_name("z", key_z).
+key_name("up", key_up).
+key_name("down", key_down).
+key_name("left", key_left).
+key_name("right", key_right).
 
 :- func create_quit_event = (window_event::out) is det.
 create_quit_event = (quit_event).
@@ -895,6 +978,16 @@ create_bmp_io_ok(Surface) = (ok(Surface)).
             Result = createBMPIOError(str, 0);
         }
 
+        IOout = IOin;
+    ").
+:- pragma foreign_proc("C", 
+    load_bmp(Surface::uo, Path::in, IOin::di, IOout::uo),
+    [will_not_throw_exception, promise_pure],
+    "
+        if(!(Surface = SDL_LoadBMP(Path))){
+            Surface = SDL_CreateRGBSurface(0, 1, 1, 32, 0, 0, 0, 0);
+            memset(Surface->pixels, 0, 4);
+        }
         IOout = IOin;
     ").
 
